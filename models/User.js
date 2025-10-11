@@ -21,10 +21,14 @@ const userSchema = new mongoose.Schema({
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
     },
 
-    password: {
+
+
+    phone: {
         type: String,
-        required: [true, 'Password is required'],
-        minlength: [6, 'Password must be at least 6 characters long'],
+        // Required only if the user role is 'victim'.
+        required: function() { 
+            return this.role === 'victim'; 
+        },
     },
     
     // Aligned with signupForm.dateOfBirth
@@ -34,12 +38,21 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Date of Birth is required'],
     },
 
+
+
     // Aligned with signupForm.gender
     gender: {
         type: String,
         enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
         // Making it required for all signups
         required: [true, 'Gender is required'],
+    },
+
+
+        password: {
+        type: String,
+        required: [true, 'Password is required'],
+        minlength: [6, 'Password must be at least 6 characters long'],
     },
 
     // Alignment with signupForm.agreeTerms
@@ -49,7 +62,7 @@ const userSchema = new mongoose.Schema({
         default: false,
     },
 
-    // ⛔ Removed the 'anonymous' field ⛔
+
 
     role: {
         type: String,
@@ -72,13 +85,7 @@ const userSchema = new mongoose.Schema({
     },
 
     // Victim-specific fields
-    phone: {
-        type: String,
-        // Required only if the user role is 'victim'.
-        required: function() { 
-            return this.role === 'victim'; 
-        },
-    },
+
     location: {
         type: String,
     },

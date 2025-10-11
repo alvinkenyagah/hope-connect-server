@@ -5,17 +5,41 @@ const User = require('../models/User');
 
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 
+
 exports.register = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) return res.status(400).json({ message: 'Missing fields' });
+  const { name, email, password, role, phone, dateOfBirth, gender, agreeTerms } = req.body;
+
+  // Basic validation
+  if (!name || !email || !password || !role || !phone || !dateOfBirth || !gender) {
+    return res.status(400).json({ message: 'Please fill in all required fields.' });
+  }
+
+  // Check if email is already used
   const exists = await User.findOne({ email });
   if (exists) return res.status(400).json({ message: 'Email already used' });
 
+  // Hash password
   const salt = await bcrypt.genSalt(10);
   const hashed = await bcrypt.hash(password, salt);
-  const user = await User.create({ name, email, password: hashed, role });
-  res.status(201).json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, token: generateToken(user._id) });
+
+  // Create new user
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role,
+    phone,
+    dateOfBirth,
+    gender,
+    agreeTerms,
+  });
+
+  res.status(201).json({
+    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    token: generateToken(user._id),
+  });
 });
+
 
 exports.login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
