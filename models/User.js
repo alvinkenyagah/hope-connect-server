@@ -6,22 +6,18 @@ const userSchema = new mongoose.Schema({
     // Common fields
     name: {
         type: String,
-        // Now unconditionally required
         required: [true, 'Name is required'],
         trim: true,
     },
 
     email: {
         type: String,
-        // Now unconditionally required
         required: [true, 'Email is required'],
         unique: true,
         lowercase: true,
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
     },
-
-
 
     phone: {
         type: String,
@@ -34,22 +30,17 @@ const userSchema = new mongoose.Schema({
     // Aligned with signupForm.dateOfBirth
     dateOfBirth: {
         type: Date,
-        // Making it required for all signups (since there's no anonymous option)
         required: [true, 'Date of Birth is required'],
     },
-
-
 
     // Aligned with signupForm.gender
     gender: {
         type: String,
         enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
-        // Making it required for all signups
         required: [true, 'Gender is required'],
     },
 
-
-        password: {
+    password: {
         type: String,
         required: [true, 'Password is required'],
         minlength: [6, 'Password must be at least 6 characters long'],
@@ -61,8 +52,6 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Must agree to terms and conditions'],
         default: false,
     },
-
-
 
     role: {
         type: String,
@@ -85,7 +74,6 @@ const userSchema = new mongoose.Schema({
     },
 
     // Victim-specific fields
-
     location: {
         type: String,
     },
@@ -109,27 +97,24 @@ const userSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// **Password hashing and methods remain the same**
 
 /**
- * Password hashing before saving
+ * 🛑 CRITICAL CHANGE: REMOVED THE userSchema.pre('save') HOOK! 🛑
+ * * Reason: The password is now hashed in the authController.js file 
+ * before calling User.create(). Removing this hook prevents double-hashing, 
+ * which was the likely cause of the "password mismatch" error.
  */
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-});
+
 
 /**
- * Compare passwords
+ * Compare passwords - This logic remains correct.
  */
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
 /**
- * Hide sensitive data when sending user info
+ * Hide sensitive data when sending user info - This logic remains correct.
  */
 userSchema.methods.toJSON = function () {
     const obj = this.toObject();
