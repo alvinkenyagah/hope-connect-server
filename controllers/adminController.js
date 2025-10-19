@@ -1,36 +1,3 @@
-// const Counsellor = require('../models/Counsellor'); // Adjust path as needed
-
-// // Add a new counsellor
-// exports.addCounsellor = async (req, res) => {
-//     try {
-//         const { name, email, phone, specialization } = req.body;
-
-//         // Basic validation
-//         if (!name || !email || !phone || !specialization) {
-//             return res.status(400).json({ message: 'All fields are required.' });
-//         }
-
-//         // Check if counsellor already exists
-//         const existing = await Counsellor.findOne({ email });
-//         if (existing) {
-//             return res.status(409).json({ message: 'Counsellor already exists.' });
-//         }
-
-//         const counsellor = new Counsellor({
-//             name,
-//             email,
-//             phone,
-//             specialization
-//         });
-
-//         await counsellor.save();
-
-//         res.status(201).json({ message: 'Counsellor added successfully.', counsellor });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error.', error: error.message });
-//     }
-// };
-
 
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
