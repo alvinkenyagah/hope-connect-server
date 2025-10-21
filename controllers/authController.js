@@ -7,42 +7,57 @@ const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expires
 
 
 exports.register = asyncHandler(async (req, res) => {
-    const { name, email, password, role, phone, dateOfBirth, gender, agreeTerms } = req.body;
+  const { name, email, password, role, phone, dateOfBirth, gender, agreeTerms } = req.body;
 
-    // --- START: FIX FOR PASSWORD INCONSISTENCY ---
-    // Trim the password immediately to handle leading/trailing spaces from client input.
-    const trimmedPassword = password ? password.trim() : null;
+  const trimmedPassword = password ? password.trim() : null;
 
-    // Basic validation check now uses the trimmed password
-    if (!name || !email || !trimmedPassword || !role || !phone || !dateOfBirth || !gender) {
-        return res.status(400).json({ message: 'Please fill in all required fields.' });
+  if (!name || !email || !trimmedPassword || !role || !phone || !dateOfBirth || !gender) {
+    return res.status(400).json({ message: 'Please fill in all required fields.' });
+  }
+
+  const exists = await User.findOne({ email });
+  if (exists) return res.status(400).json({ message: 'Email already used' });
+
+  const salt = await bcrypt.genSalt(10);
+  const hashed = await bcrypt.hash(trimmedPassword, salt);
+
+  let assignedCounselor = null;
+
+  // 🧠 Auto-assign a counselor if the user is a victim
+  if (role === 'victim') {
+    const availableCounselor = await User.findOne({ role: 'counselor' }).sort({ createdAt: 1 });
+    if (availableCounselor) {
+      assignedCounselor = availableCounselor._id;
     }
-    // --- END: FIX FOR PASSWORD INCONSISTENCY ---
+  }
 
-    // Check if email is already used
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ message: 'Email already used' });
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role,
+    phone,
+    dateOfBirth,
+    gender,
+    agreeTerms,
+    assignedCounselor,
+  });
 
-    // Hash password (using the trimmed password)
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(trimmedPassword, salt);
+  // Populate counselor data if assigned
+  const populatedUser = assignedCounselor
+    ? await user.populate('assignedCounselor', 'name email role')
+    : user;
 
-    // Create new user
-    const user = await User.create({
-        name,
-        email,
-        password: hashed,
-        role,
-        phone,
-        dateOfBirth,
-        gender,
-        agreeTerms,
-    });
-
-    res.status(201).json({
-        user: { id: user._id, name: user.name, email: user.email, role: user.role },
-        token: generateToken(user._id),
-    });
+  res.status(201).json({
+    user: {
+      id: populatedUser._id,
+      name: populatedUser.name,
+      email: populatedUser.email,
+      role: populatedUser.role,
+      assignedCounselor: populatedUser.assignedCounselor || null,
+    },
+    token: generateToken(user._id),
+  });
 });
 
 
@@ -81,16 +96,26 @@ exports.login = asyncHandler(async (req, res) => {
                 return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
             }
 
-            logLoginDebug(email, 'Password match successful');
-            res.json({
+                logLoginDebug(email, 'Password match successful');
+
+                // 🧠 If the user is a victim, populate their counselor
+                let counselorData = null;
+                if (user.role === 'victim' && user.assignedCounselor) {
+                const counselor = await User.findById(user.assignedCounselor).select('name email role');
+                counselorData = counselor;
+                }
+
+                res.json({
                 user: {
                     id: user._id,
                     name: user.name,
                     email: user.email,
                     role: user.role,
+                    assignedCounselor: counselorData, // ✅ Include this in response
                 },
                 token: generateToken(user._id),
-            });
+                });
+
         } catch (compareErr) {
             logLoginDebug(email, 'Bcrypt compare error', { error: compareErr.message });
             return res.status(500).json({ message: 'Hash comparison failed' });

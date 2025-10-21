@@ -67,8 +67,52 @@ exports.addCounsellor = asyncHandler(async (req, res) => {
  * @access  Private (Admin only)
  */
 exports.getAllUsers = asyncHandler(async (req, res) => {
-    // Select all users, but exclude the password field
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const users = await User.find({})
+        .select('-password')
+        .populate('assignedCounselor', 'name email specialization') // 👈 new line
+        .sort({ createdAt: -1 });
 
     res.status(200).json(users);
+});
+
+
+
+/**
+ * @desc    Admin assigns a counselor to a victim
+ * @route   POST /api/admin/assign-counselor
+ * @access  Private (Admin only)
+ */
+exports.assignCounselor = asyncHandler(async (req, res) => {
+    const { victimId, counselorId } = req.body;
+
+    if (!victimId || !counselorId) {
+        return res.status(400).json({ message: 'Both victimId and counselorId are required.' });
+    }
+
+    // Fetch both users
+    const victim = await User.findById(victimId);
+    const counselor = await User.findById(counselorId);
+
+    if (!victim || victim.role !== 'victim') {
+        return res.status(404).json({ message: 'Victim not found or invalid role.' });
+    }
+
+    if (!counselor || counselor.role !== 'counselor') {
+        return res.status(404).json({ message: 'Counselor not found or invalid role.' });
+    }
+
+    // Assign the counselor to victim
+    victim.assignedCounselor = counselor._id;
+    await victim.save();
+
+    // Return updated info
+    res.status(200).json({
+        message: `Counselor ${counselor.name} has been assigned to victim ${victim.name}.`,
+        victim: {
+            id: victim._id,
+            name: victim.name,
+            email: victim.email,
+            assignedCounselor: counselor.name
+        }
+    });
 });

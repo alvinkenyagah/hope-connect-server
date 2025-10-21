@@ -60,6 +60,14 @@ const userSchema = new mongoose.Schema({
         default: 'victim',
     },
 
+
+    // Link a victim to a counselor
+    assignedCounselor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    },
+
     // Counselor-specific fields
     qualifications: {
         type: String,
@@ -98,17 +106,6 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-/**
- * 🛑 CRITICAL CHANGE: REMOVED THE userSchema.pre('save') HOOK! 🛑
- * * Reason: The password is now hashed in the authController.js file 
- * before calling User.create(). Removing this hook prevents double-hashing, 
- * which was the likely cause of the "password mismatch" error.
- */
-
-
-/**
- * Compare passwords - This logic remains correct.
- */
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
