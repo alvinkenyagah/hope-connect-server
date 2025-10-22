@@ -3,6 +3,8 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const counselorRoutes = require('./routes/counselorRoutes');
+
 
 // const counselorRoutes = require('./routes/counselorRoutes');
 // const victimRoutes = require('./routes/victimRoutes');
@@ -11,9 +13,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+
+
+
+
+
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+
+app.use('/api/counselor', counselorRoutes);
 
 app.use('/api/chat', chatRoutes);
 // app.use('/api/counselor', counselorRoutes);

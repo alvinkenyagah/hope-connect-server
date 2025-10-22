@@ -116,3 +116,26 @@ exports.assignCounselor = asyncHandler(async (req, res) => {
         }
     });
 });
+
+
+
+
+/**
+ * @desc    Get all victims assigned to a specific counselor
+ * @route   GET /api/admin/assigned-victims/:counselorId
+ * @access  Private (Admin only)
+ */
+exports.getAssignedVictims = asyncHandler(async (req, res) => {
+    const { counselorId } = req.params;
+
+    if (!counselorId) {
+        return res.status(400).json({ message: 'Counselor ID is required.' });
+    }
+
+    // Find all victims whose assignedCounselor matches this counselor
+    const victims = await User.find({ assignedCounselor: counselorId })
+        .select('name email assignedCounselor createdAt lastLogin') // Return only safe fields
+        .sort({ createdAt: -1 });
+
+    res.status(200).json(victims);
+});

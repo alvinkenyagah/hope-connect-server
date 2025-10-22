@@ -1,20 +1,24 @@
 const express = require('express');
 const { protect, authorize } = require('../middleware/authMiddleware.js');
 const router = express.Router();
-const { addCounsellor, getAllUsers, assignCounselor } = require('../controllers/adminController');
+const { 
+  addCounsellor, 
+  getAllUsers, 
+  assignCounselor, 
+  getAssignedVictims 
+} = require('../controllers/adminController');
 
-// All routes here must be protected and restricted to 'admin' role
+// existing routes
 router.use(protect, authorize(['admin']));
-
-// @route   POST /api/admin/counsellor
-// @desc    Admin adds a new counsellor
 router.post('/counsellor', addCounsellor);
-
-// @route   GET /api/admin/users
-// @desc    Admin gets a list of all users
 router.get('/users', getAllUsers);
 router.post('/assign-counselor', assignCounselor);
+
+// ✅ New route for counselor dashboard
+router.get('/assigned-victims/:counselorId', getAssignedVictims);
+
 module.exports = router;
+
 
 
 
