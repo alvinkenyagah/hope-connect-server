@@ -7,10 +7,13 @@ const http = require('http');
 const { Server } = require('socket.io'); 
 const Message = require('./models/Message');
 const User = require('./models/User'); 
-const { decrypt } = require('./utils/crypto'); // <-- NEW: Import decrypt function
+const { decrypt } = require('./utils/crypto'); 
 
 const PORT = process.env.PORT || 4000; 
 const MONGO_URI = process.env.MONGO_URI; 
+
+// CRITICAL FIX 1: Use a deployed origin environment variable for CORS
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "https://hope-connect.netlify.app"; 
 
 mongoose.connect(MONGO_URI, { 
   useNewUrlParser: true,
@@ -19,16 +22,18 @@ mongoose.connect(MONGO_URI, {
 .then(() => {
   console.log('MongoDB connected');
 
+  // CRITICAL FIX 2: HTTP server listens on PORT for the deployed environment
   const server = http.createServer(app);
   
   const io = new Server(server, {
     cors: { 
-      origin: "https://hope-connect.netlify.app", 
+      // Use the client origin. Use .split(',') to allow multiple origins if needed.
+      origin: CLIENT_ORIGIN.split(','), 
       methods: ["GET", "POST"]
     }
   });
 
-  // Socket.IO connection event
+  // Socket.IO handlers (Logic remains the same, ensuring decrypted, targeted broadcast)
   io.on('connection', (socket) => {
     
     console.log('⚡ New user connected (Socket ID:', socket.id + ')');
@@ -43,25 +48,18 @@ mongoose.connect(MONGO_URI, {
       const { from, to, text } = payload;
       
       try {
-        console.log(`Message from ${from} to ${to}: ${text}`);
-        
-        // 1. Save message (Encryption happens here)
         const messageDoc = await Message.create({ from, to, text }); 
         
-        // 2. Fetch the saved document. No virtuals needed as we decrypt manually.
         const populatedMessage = await Message.findById(messageDoc._id)
             .populate('from to', 'name role email')
             .lean(); 
 
-        // 3. CRITICAL FIX: Explicitly decrypt the stored message text
         const plaintext = decrypt(populatedMessage.text);
 
-        // 4. Format the message payload
         let decryptedMessage;
         if (populatedMessage) {
             decryptedMessage = {
                 ...populatedMessage,
-                // Overwrite the encrypted 'text' with the plaintext
                 text: plaintext, 
             };
         } else {
@@ -69,15 +67,13 @@ mongoose.connect(MONGO_URI, {
         }
 
         const responsePayload = {
-          message: decryptedMessage // The plaintext object
+          message: decryptedMessage 
         };
 
-        // 5. BROADCAST FIX: 
-        
-        // A. Send to the RECIPIENT
+        // Send to RECIPIENT
         io.to(to).emit('receive_message', responsePayload);
         
-        // B. Send to SENDER's OTHER DEVICES ONLY (Prevents echo overwrite)
+        // Send to SENDER's OTHER DEVICES ONLY
         socket.broadcast.to(from).emit('receive_message', responsePayload);
 
       } catch (e) {
