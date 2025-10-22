@@ -9,12 +9,12 @@ const Message = require('../models/Message');
 
 const router = express.Router();
 
-// Middleware: Restrict routes to authenticated counselors only
+// Middleware: only logged-in counselors can use these routes
 router.use(protect, authorize(['counselor']));
 
 /**
- * @desc    Get all victims assigned to the logged-in counselor
- *          Includes the last contact timestamp for each victim.
+ * @desc    Get victims assigned to the logged-in counselor
+ *          Includes last contact time and summary counts.
  * @route   GET /api/counselor/my-victims
  * @access  Private (Counselor)
  */
@@ -24,14 +24,14 @@ router.get(
     const counselorId = new mongoose.Types.ObjectId(req.user.id);
 
     const victimsWithLastContact = await User.aggregate([
-      // Match victims assigned to this counselor
+      // 1. Match victims assigned to this counselor
       {
         $match: {
           assignedCounselor: counselorId,
           role: 'victim',
         },
       },
-      // Lookup messages where the victim is the sender
+      // 2. Look up messages where the victim is the sender
       {
         $lookup: {
           from: Message.collection.name,
@@ -40,7 +40,7 @@ router.get(
           as: 'sentMessages',
         },
       },
-      // Lookup messages where the victim is the receiver
+      // 3. Look up messages where the victim is the receiver
       {
         $lookup: {
           from: Message.collection.name,
@@ -49,7 +49,7 @@ router.get(
           as: 'receivedMessages',
         },
       },
-      // Combine messages and filter for those between the victim and counselor
+      // 4. Combine all messages and filter those between the victim and counselor
       {
         $addFields: {
           allMessagesWithCounselor: {
@@ -66,13 +66,13 @@ router.get(
           },
         },
       },
-      // Determine latest contact timestamp
+      // 5. Compute the latest message timestamp
       {
         $addFields: {
           lastContact: { $max: '$allMessagesWithCounselor.createdAt' },
         },
       },
-      // Project final fields
+      // 6. Select the fields to return
       {
         $project: {
           _id: 1,
@@ -84,13 +84,23 @@ router.get(
           lastContact: 1,
         },
       },
-      // Sort by last contact (latest first)
+      // 7. Sort by latest contact and creation date
       {
         $sort: { lastContact: -1, createdAt: -1 },
       },
     ]);
 
-    res.status(200).json(victimsWithLastContact);
+    // Summary statistics
+    const totalAssigned = victimsWithLastContact.length;
+    const contactedClients = victimsWithLastContact.filter(
+      (v) => v.lastContact
+    ).length;
+
+    res.status(200).json({
+      victims: victimsWithLastContact,
+      totalAssigned,
+      contactedClients,
+    });
   })
 );
 
