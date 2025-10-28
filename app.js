@@ -6,7 +6,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const counselorRoutes = require('./routes/counselorRoutes');
 
 const appointmentRoutes = require('./routes/appointmentRoutes');
-
+const assignmentRoutes = require('./routes/assignmentRoutes');
 // const counselorRoutes = require('./routes/counselorRoutes');
 // const victimRoutes = require('./routes/victimRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes.js');
@@ -27,7 +27,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/counselor', counselorRoutes);
 
 app.use('/api/appointments', appointmentRoutes);
-
+app.use('/api/assignments', assignmentRoutes);
 
 app.use('/api/chat', chatRoutes);
 // app.use('/api/counselor', counselorRoutes);
