@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Name is required'],
         trim: true,
     },
-
     email: {
         type: String,
         required: [true, 'Email is required'],
@@ -18,57 +17,42 @@ const userSchema = new mongoose.Schema({
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
     },
-
     phone: {
         type: String,
-        // Required only if the user role is 'victim'.
-        required: function() { 
-            return this.role === 'victim'; 
+        required: function () {
+            return this.role === 'victim';
         },
     },
-    
-    // Aligned with signupForm.dateOfBirth
     dateOfBirth: {
         type: Date,
         required: [true, 'Date of Birth is required'],
     },
-
-    // Aligned with signupForm.gender
     gender: {
         type: String,
         enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
         required: [true, 'Gender is required'],
     },
-
     password: {
         type: String,
         required: [true, 'Password is required'],
         minlength: [6, 'Password must be at least 6 characters long'],
     },
-
-    // Alignment with signupForm.agreeTerms
     agreeTerms: {
         type: Boolean,
         required: [true, 'Must agree to terms and conditions'],
         default: false,
     },
-
     role: {
         type: String,
         enum: ['admin', 'counselor', 'victim'],
-        required: [true, 'Role is required'], 
+        required: [true, 'Role is required'],
         default: 'victim',
     },
-
-
-    // Link a victim to a counselor
     assignedCounselor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
     },
-
-    // Counselor-specific fields
     qualifications: {
         type: String,
         default: '',
@@ -80,8 +64,6 @@ const userSchema = new mongoose.Schema({
     specialization: {
         type: String,
     },
-
-    // Victim-specific fields
     location: {
         type: String,
     },
@@ -89,8 +71,6 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-
-    // Admin-related / general control
     isActive: {
         type: Boolean,
         default: true,
@@ -102,22 +82,26 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
-}, { timestamps: true });
-
-
+// Password comparison
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-/**
- * Hide sensitive data when sending user info - This logic remains correct.
- */
+// Hide sensitive info
 userSchema.methods.toJSON = function () {
     const obj = this.toObject();
     delete obj.password;
     delete obj.__v;
     return obj;
 };
+
+// Virtual for victim's notes
+userSchema.virtual('notes', {
+    ref: 'Note',           // The model to use
+    localField: '_id',     // Find notes where `victim` is this user's _id
+    foreignField: 'victim' // Field in Note model that references the user
+});
 
 module.exports = mongoose.model('User', userSchema);

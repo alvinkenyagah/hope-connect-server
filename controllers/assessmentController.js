@@ -64,3 +64,25 @@ exports.submitAssessment = asyncHandler(async (req, res) => {
         score: newAssessment.score,
     });
 });
+
+
+
+/**
+ * @desc Get assessments for ANY user (used by counselors)
+ * @route GET /api/assessments/user/:id
+ * @access Private (Counselor)
+ */
+exports.getAssessmentsForUser = asyncHandler(async (req, res) => {
+    const targetUserId = req.params.id;
+
+    // Optional: forbid victims from viewing others' assessments
+    if (req.user.role !== "counselor" && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Access denied." });
+    }
+
+    const assessments = await Assessment.find({ user: targetUserId })
+        .select("score dateTaken answers")
+        .sort({ dateTaken: -1 });
+
+    res.status(200).json(assessments);
+});

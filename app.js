@@ -5,6 +5,9 @@ const adminRoutes = require('./routes/adminRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const counselorRoutes = require('./routes/counselorRoutes');
 
+
+const notesRoutes = require('./routes/notesRoutes');
+
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 // const counselorRoutes = require('./routes/counselorRoutes');
@@ -34,6 +37,12 @@ app.use('/api/chat', chatRoutes);
 // app.use('/api/victim', victimRoutes);
 
 app.use('/api/assessments', assessmentRoutes); 
+
+
+
+app.use('/api/notes', notesRoutes);
+
+
 
 app.get('/', (req, res) => res.send('Recovery Platform API'));
 

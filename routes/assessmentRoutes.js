@@ -1,15 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth'); // Assuming your auth middleware is here
+const auth = require('../middleware/auth');
 const assessmentController = require('../controllers/assessmentController');
 
-// All assessment routes should be protected and require authentication
-router.use(auth); 
+// All assessment routes protected
+router.use(auth);
 
-// @route POST /api/assessments - Submit a new assessment
+// Victim submits assessment
 router.post('/', assessmentController.submitAssessment);
 
-// @route GET /api/assessments - Get user's assessment history
+// Victim views their own assessments
 router.get('/', assessmentController.getAssessments);
+
+// Counselor views a client's assessments
+router.get('/user/:id', assessmentController.getAssessmentsForUser);
 
 module.exports = router;
